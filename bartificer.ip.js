@@ -1,5 +1,112 @@
 // a self-extracting anonymous function to allow the bartificer namespace be used in a sane way
 (function(bartificer, undefined){
+	//
+	// --- The Public IP Class -------------------------------------------------
+	//
+	
+	// -- Function --
+	// Purpose    : CONSTRUCTOR
+	// Returns    : VOID - intended to be called via new
+	// Arguments  : 1. OPTIONAL - a IP address as a string
+	// Throws     : Throws an error if an invalid argument is passed
+	// Notes      : This class inherits from Bin32 (not published)
+	// See Also   :
+	function IP(){
+		// start by instantiating a blank object
+		this._bits = gen32bitZeroArray();
+		
+		// if an argument was passed, try init the object with it
+		if(arguments.length >= 1){
+			this.parse(arguments[0]);
+		}
+	};
+	IP.prototype = new Bin32();
+	IP.prototype.constructor = IP;
+	
+	// -- Function --
+	// Purpose    : Render the IP address as a String
+	// Returns    : a String
+	// Arguments  : NONE
+	// Throws     : NOTHING
+	// Notes      :
+	// See Also   :
+	IP.prototype.toString = function(){
+		return this.asDottedQuad();
+	};
+	
+	// -- Function --
+	// Purpose    : Test if a passed value represents the IP stored in this
+	//              object
+	// Returns    : true or false
+	// Arguments  : 1. A bartificer.ip.IP object
+	//              -OR-
+	//              1. A dotted quad as a string
+	// Throws     : NOTHING
+	// Notes      : false is returned on invalid arguments
+	// See Also   : 
+	IP.prototype.equals = function(testVal){
+		// make sure we have been passed a value to test
+		if(arguments.length < 1){
+			return false; // no args, so return false
+		}
+		
+		// check the type of the argument, and act accordingly
+		if(typeof testVal == 'string'){
+			// we have a string to test
+			if(isDottedQuad(testVal) || is32BitBinary(testVal) || is32BitHex(testVal)){
+				var testIP = new IP(testVal);
+				if(this.asDottedQuad() == testIP.asDottedQuad()){
+					return true;
+				}else{
+					return false;
+				}
+			}else{
+				return false;
+			}
+		}else if(testVal instanceof IP || testVal instanceof Bin32){
+			// we have been passed a 32bit number of some kind to test
+			if(this.asBinaryString() == testVal.asBinaryString()){
+				return true;
+			}else{
+				return false;
+			}
+		}
+		
+		// if we got here we were not able to interpret the argument, so return false
+		return false;
+	};
+	
+	// -- Function --
+	// Purpose    : Clone an IP object
+	// Returns    : a new IP object representing the same value as this one
+	// Arguments  : NONE
+	// Throws     : NOTHING
+	// Notes      : 
+	// See Also   : 
+	IP.prototype.clone = function(){
+		return new IP(this.asDottedQuad());
+	};
+	
+	// -- Function --
+	// Purpose    : Load a value into the object
+	// Returns    : a reference to the object (to enable function chaining)
+	// Arguments  : 1. the String to parse
+	// Throws     : Throws an error if the passed value can't be parsed as an IP
+	// Notes      :
+	// See Also   :
+	IP.prototype.parse = function(ipVal){
+		// Figure out what we have been passed
+		if(isDottedQuad(ipVal)){
+			return this.fromDottedQuad(ipVal);
+		}else if(is32BitBinary(ipVal)){
+			return this.fromBinaryString(ipVal);
+		}else if(is32BitHex(ipVal)){
+			return this.fromHexString(ipVal);
+		}
+		
+		// if we get here we were not able to parse the value, so throw an error
+		throw "parse error - failed to parse the given value as an IP address: " + ipVal;
+	};
 	
 	//
 	// ==== The Public Subnet Class ============================================
@@ -36,7 +143,7 @@
 		this._netMask = netmask;
 		
 		//convert the IP to a netaddress and store
-		this._netAddress = new IP().set(ip.bitwiseAnd(this._netMask));
+		this._netAddress = new IP().fromBinaryString(ip.bitwiseAnd(this._netMask));
 	};
 	
 	// -- Function --
@@ -181,7 +288,7 @@
 	// Notes      :
 	// See Also   :
 	Subnet.prototype.addressAsBinaryString = function(){
-		return this._netAddress.get();
+		return this._netAddress.asBinaryString();
 	};
 	
 	// -- Function --
@@ -225,7 +332,7 @@
 	// Notes      :
 	// See Also   :
 	Subnet.prototype.maskAsBinaryString = function(){
-		return this._netMask.get();
+		return this._netMask.asBinaryString();
 	};
 	
 	//
@@ -409,6 +516,22 @@
 	
 	// -- Function --
 	// Purpose    : A helper function to check if a string contains a valid 
+	//              32bit binary string.
+	// Returns    : true or false
+	// Arguments  : 1. a string to test
+	// Throws     : NOTHING
+	// Notes      : If no argument is passed false is returned
+	// See Also   :
+	function is32BitBinary(testVal){
+		var testString = String(testVal);
+		if(testString.match(/^[01]{32}$/)){
+			return true;
+		}
+		return false;
+	}
+	
+	// -- Function --
+	// Purpose    : A helper function to check if a string contains a valid 
 	//              32bir hex string.
 	// Returns    : true or false
 	// Arguments  : 1. a string to test
@@ -439,21 +562,9 @@
 	}
 	
 	
-	
 	//
 	// === PRIVATE Helper Classes ==============================================
 	//
-	
-	//
-	// --- The IP Class --------------------------------------------------------
-	//
-	
-	// inherit from a 32bit binary number
-	function IP(){
-		this.bits = gen32bitZeroArray();
-	};
-	IP.prototype = new Bin32();
-	IP.prototype.constructor = IP;
 	
 	//
 	// --- The Netmask Class ---------------------------------------------------
@@ -461,7 +572,7 @@
 	
 	// inherit from a 32bit binary number
 	function Netmask(){
-		this.bits = gen32bitZeroArray();
+		this._bits = gen32bitZeroArray();
 	};
 	Netmask.prototype = new Bin32();
 	Netmask.prototype.constructor = Netmask;
@@ -482,7 +593,7 @@
 		}
 	
 		// load the passed value into the object (using the parent constructor)
-		Bin32.prototype.set.call(this, initVal);
+		Bin32.prototype.fromBinaryString.call(this, initVal);
 	
 		// return the object
 		return this;
@@ -496,7 +607,7 @@
 	// Notes      :
 	// See Also   :
 	Netmask.prototype.asNumBits = function(){
-		var binString = this.get();
+		var binString = this.asBinaryString();
 		return (binString.match(/1/g) || []).length;
 	};
 	
@@ -516,11 +627,11 @@
 		}
 		
 		// set the value
-		for(var i = 0; i < this.bits.length; i++){
+		for(var i = 0; i < this._bits.length; i++){
 			if(i < bitsInt){
-				this.bits[i] = 1;
+				this._bits[i] = 1;
 			}else{
-				this.bits[i] = 0;
+				this._bits[i] = 0;
 			}
 		}
 		
@@ -542,7 +653,7 @@
 		}
 		
 		// convert to a string of bits using Bin32
-		var bitString = new Bin32().fromDottedQuad(quadVal).get();
+		var bitString = new Bin32().fromDottedQuad(quadVal).asBinaryString();
 		
 		// make sure the bits are a valid netmask
 		if(!bitString.match(/^1*0*$/)){
@@ -567,7 +678,7 @@
 		}
 		
 		// convert to a string of bits using Bin32
-		var bitString = new Bin32().fromHexString(hexVal).get();
+		var bitString = new Bin32().fromHexString(hexVal).asBinaryString();
 		
 		// make sure the bits are a valid netmask
 		if(!bitString.match(/^1*0*$/)){
@@ -590,18 +701,18 @@
 	// Notes      : 
 	// See Also   :
 	function Bin32(){
-		this.bits = gen32bitZeroArray();
+		this._bits = gen32bitZeroArray();
 	}
 	
 	// -- Function --
-	// Purpose    : Return the stored value
+	// Purpose    : Return the stored value as a binary string.
 	// Returns    : A string of 32 1s and 0s
 	// Arguments  : NONE
 	// Throws     : NOTHING
 	// Notes      :
 	// See Also   :
-	Bin32.prototype.get = function(){
-		return this.bits.join('');
+	Bin32.prototype.asBinaryString = function(){
+		return this._bits.join('');
 	};
 
 	// -- Function --
@@ -611,7 +722,7 @@
 	// Throws     : Throws an error on invalid args
 	// Notes      :
 	// See Also   :
-	Bin32.prototype.set = function(initVal){
+	Bin32.prototype.fromBinaryString = function(initVal){
 		// ensure valid args
 		var initString = String(initVal);
 		if(!initString.match(/^[01]{32}$/)){
@@ -621,9 +732,9 @@
 		// load the passed value into the object
 		for(var i = 0; i < initString.length; i++){
 			if(initString.charAt(i) == 1){
-				this.bits[i] = 1;
+				this._bits[i] = 1;
 			}else{
-				this.bits[i] = 0;
+				this._bits[i] = 0;
 			}
 		}
 	
@@ -639,7 +750,7 @@
 	// Notes      :
 	// See Also   :
 	Bin32.prototype.asDottedQuad = function(){
-		var binString = this.get();
+		var binString = this.asBinaryString();
 		var ans = '' + bin2dec(binString.substring(0,8));
 		ans += '.' + bin2dec(binString.substring(8,16));
 		ans += '.' + bin2dec(binString.substring(16,24));
@@ -658,7 +769,7 @@
 		// validate the args
 		var dottedQuadString = String(dottedQuadVal);
 		if(!isDottedQuad(dottedQuadString)){
-			throw "invalid args";
+			throw "invalid args - expected dotted quad as String got: " + dottedQuadVal;
 		}
 		
 		// split the quad and convert each of the bits to binary and concat
@@ -674,7 +785,7 @@
 		}
 		
 		// store the bits
-		this.set(ans);
+		this.fromBinaryString(ans);
 		
 		// return a reference to self
 		return this;
@@ -688,15 +799,15 @@
 	// Notes      :
 	// See Also   :
 	Bin32.prototype.asHexString = function(){
-		var binString = this.get();
-		var ans = '' + fourbits2hex(binString.substring(0,4));
-		ans += fourbits2hex(binString.substring(4,8));
-		ans += fourbits2hex(binString.substring(8,12));
-		ans += fourbits2hex(binString.substring(12,16));
-		ans += fourbits2hex(binString.substring(16,20));
-		ans += fourbits2hex(binString.substring(20,24));
-		ans += fourbits2hex(binString.substring(24,28));
-		ans += fourbits2hex(binString.substring(28));
+		var binString = this.asBinaryString();
+		var ans = '0x' + fourBits2hex(binString.substring(0,4));
+		ans += fourBits2hex(binString.substring(4,8));
+		ans += fourBits2hex(binString.substring(8,12));
+		ans += fourBits2hex(binString.substring(12,16));
+		ans += fourBits2hex(binString.substring(16,20));
+		ans += fourBits2hex(binString.substring(20,24));
+		ans += fourBits2hex(binString.substring(24,28));
+		ans += fourBits2hex(binString.substring(28));
 		return ans;
 	};
 	
@@ -729,7 +840,7 @@
 		}
 		
 		// set the value of the object
-		this.set(ans);
+		this.fromBinaryString(ans);
 		
 		// return a reference to self
 		return this;
@@ -742,29 +853,48 @@
 	//                 array
 	// Throws     : Throws an error on invalid args
 	// Notes      : This function doesn't check for type to facilitate
-	//              polymorphism, instead it checks that a property bits exists,
-	//              is an array, is 32 characters long, and contains all 1s and
-	//              0s
+	//              polymorphism, instead it checks that a property _bits
+	//              exists, is an array, is 32 characters long, and contains all
+	//              1s and 0s
 	// See Also   :
-	Bin32.prototype.bitwiseAnd = function(binInstance){
+	Bin32.prototype.bitwiseAnd = function(inputVal){
+		var inputInstance;
+		
+		// see if we got a string or not
+		if(typeof inputVal == 'string'){
+			// we are a string, so try create a Bin32 object from the string
+			if(is32BitBinary(inputVal)){
+				inputInstance = new Bin32().fromBinaryString(inputVal);
+			}else if(is32BitHex(inputVal)){
+				inputInstance = new Bin32().fromHexString(inputVal);
+			}else if(isDottedQuad(inputVal)){
+				inputInstance = new Bin32().fromDottedQuad(inputVal);
+			}else{
+				throw "parse error - failed to interpret passed string as a 32bit number: " + inputVal;
+			}
+		}else{
+			// not a string, so use the passed object as the input
+			inputInstance = inputVal
+		}
+		
 		// validate args
-		if(!(binInstance && binInstance.bits)){
+		if(!(inputInstance && inputInstance._bits)){
 			throw "invalid args";
 		}
-		if(!(toString.call(binInstance.bits) === "[object Array]")){
+		if(!(toString.call(inputInstance._bits) === "[object Array]")){
 			throw "invalid args";
 		}
-		if(binInstance.bits.length != 32){
+		if(inputInstance._bits.length != 32){
 			throw "invalid args";
 		}
-		if(!binInstance.bits.join('').match(/^[01]{32}$/)){
+		if(!inputInstance._bits.join('').match(/^[01]{32}$/)){
 			throw "invalid args";
 		}
 		
 		// do the math
 		var ans = '';
-		for(var i = 0; i < this.bits.length; i++){
-			if(this.bits[i] == 1 && binInstance.bits[i] == 1){
+		for(var i = 0; i < this._bits.length; i++){
+			if(this._bits[i] == 1 && inputInstance._bits[i] == 1){
 				ans += '1';
 			}else{
 				ans += '0';
