@@ -51,6 +51,65 @@
 	};
 	
 	// -- Function --
+	// Purpose    : check if a passed value represents the same subnet as the
+	//              object
+	// Returns    : true or false
+	// Arguments  : 1. a string representing a subnet
+	//              -OR-
+	//              1. an IP address as a string
+	//              2. a netmask as a string
+	//              -OR-
+	//              1. a bartificer.Subnet object
+	// Throws     : NOTHING
+	// Notes      : returns false on invalid args
+	// See Also   :
+	bartificer.Subnet.prototype.equals = function(){
+		// make sure we got at least one argument
+		if(arguments.length < 1){
+			return false;
+		}
+		
+		console.log(this.toString() + 'b');
+		var testsn = new bartificer.Subnet();
+		console.log(this.toString() + 'a (' + testsn.toString() + ")");
+		
+		// figure out what mode we are operating in, and try get a Subnet object
+		var subnet;
+		if(arguments[0] instanceof bartificer.Subnet){
+			// we have been passed a Subnet object, so just save it
+			subnet = arguments[0];
+		}else if(typeof arguments[0] == 'string'){
+			// we are working with strings
+
+			// see if we are the one argument or two argument form
+			if(arguments.length > 1){
+				// we are of the two-argument form
+				try{
+					subnet = new bartificer.Subnet().parse(arguments[0], arguments[1]);
+				}catch(err){
+					return false;
+				}
+			}else{
+				// we are of the one-argument form
+				try{
+					subnet = new bartificer.Subnet().parse(arguments[0]);
+				}catch(err){
+					return false;
+				}
+			}
+		}
+		console.log(this.toString() + ' - ' + subnet.toString());
+		
+		// check the subnets are the same - if so return true
+		if(this.toString() == subnet.toString()){
+			return true;
+		}
+		
+		// if we got here there was no valid args, so return false
+		return false;
+	};
+	
+	// -- Function --
 	// Purpose    : set stored subnet based on string input
 	// Returns    : a reference to the object - to facilitate function chaining
 	// Arguments  : 1. a string containing a valid IP seprated from a valid
@@ -106,6 +165,72 @@
 		
 		// return a reference to self
 		return this;
+	};
+	
+	// -- Function --
+	// Purpose    : get the network address (as a dotted quad)
+	// Returns    : a string
+	// Arguments  : NONE
+	// Throws     : NOTHING
+	// Notes      :
+	// See Also   :
+	bartificer.Subnet.prototype.address = function(){
+		return this._netAddress.asDottedQuad();
+	};
+	
+	// -- Function --
+	// Purpose    : get the network address as a binary string
+	// Returns    : a string
+	// Arguments  : NONE
+	// Throws     : NOTHING
+	// Notes      :
+	// See Also   :
+	bartificer.Subnet.prototype.addressAsBinaryString = function(){
+		return this._netAddress.get();
+	};
+	
+	// -- Function --
+	// Purpose    : get the netmask as a bit number
+	// Returns    : an integer between 0 and 32 inclusive
+	// Arguments  : NONE
+	// Throws     : NOTHING
+	// Notes      :
+	// See Also   :
+	bartificer.Subnet.prototype.mask = function(){
+		return this._netMask.asNumBits();
+	};
+	
+	// -- Function --
+	// Purpose    : get the netmask as a dotted quad
+	// Returns    : a string
+	// Arguments  : NONE
+	// Throws     : NOTHING
+	// Notes      :
+	// See Also   :
+	bartificer.Subnet.prototype.maskAsDottedQuad = function(){
+		return this._netMask.asDottedQuad();
+	};
+	
+	// -- Function --
+	// Purpose    : get the netmask as a hex string
+	// Returns    : a string
+	// Arguments  : NONE
+	// Throws     : NOTHING
+	// Notes      :
+	// See Also   :
+	bartificer.Subnet.prototype.maskAsHexString = function(){
+		return this._netMask.asHexString();
+	};
+	
+	// -- Function --
+	// Purpose    : get the netmask as a binary string
+	// Returns    : a string
+	// Arguments  : NONE
+	// Throws     : NOTHING
+	// Notes      :
+	// See Also   :
+	bartificer.Subnet.prototype.maskAsBinaryString = function(){
+		return this._netMask.get();
 	};
 	
 	//
@@ -303,6 +428,23 @@
 		return false;
 	}
 	
+	// -- Function --
+	// Purpose    : A helper function to creat a 32 long array of 0s
+	// Returns    : an array of 32 0s
+	// Arguments  : NONE
+	// Throws     : NOTHING
+	// Notes      : 
+	// See Also   :
+	function gen32bitZeroArray(){
+		var bits = [];
+		for(var i = 0; i < 32; i++){
+			bits[i] = 0;
+		}
+		return bits;
+	}
+	
+	
+	
 	//
 	// === PRIVATE Helper Classes ==============================================
 	//
@@ -312,7 +454,9 @@
 	//
 	
 	// inherit from a 32bit binary number
-	function IP(){};
+	function IP(){
+		this.bits = gen32bitZeroArray();
+	};
 	IP.prototype = new Bin32();
 	IP.prototype.constructor = IP;
 	
@@ -321,7 +465,9 @@
 	//
 	
 	// inherit from a 32bit binary number
-	function Netmask(){};
+	function Netmask(){
+		this.bits = gen32bitZeroArray();
+	};
 	Netmask.prototype = new Bin32();
 	Netmask.prototype.constructor = Netmask;
 	
@@ -449,10 +595,7 @@
 	// Notes      : 
 	// See Also   :
 	function Bin32(){
-		this.bits = [];
-		for(var i = 0; i < 32; i++){
-			this.bits[i] = 0;
-		}
+		this.bits = gen32bitZeroArray();
 	}
 	
 	// -- Function --
