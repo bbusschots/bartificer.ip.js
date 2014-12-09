@@ -27,17 +27,6 @@
 	};
 	IP.prototype = new Bin32();
 	IP.prototype.constructor = IP;
-	
-	// -- Function --
-	// Purpose    : Render the IP address as a String
-	// Returns    : a String
-	// Arguments  : NONE
-	// Throws     : NOTHING
-	// Notes      :
-	// See Also   :
-	IP.prototype.toString = function(){
-		return this.asDottedQuad();
-	};
 		
 	// -- Function --
 	// Purpose    : Clone an IP object
@@ -71,17 +60,6 @@
 	};
 	Netmask.prototype = new Bin32();
 	Netmask.prototype.constructor = Netmask;
-	
-	// -- Function --
-	// Purpose    : Render the Netmask address as a String
-	// Returns    : a String
-	// Arguments  : NONE
-	// Throws     : NOTHING
-	// Notes      :
-	// See Also   :
-	Netmask.prototype.toString = function(){
-		return String(this.asNumBits());
-	};
 	
 	// -- Function --
 	// Purpose    : Test if a passed value represents the netmask stored in this
@@ -252,16 +230,23 @@
 			throw "invalid arguments - must pass a value to parse";
 		}
 		
-		// Figure out what we have been passed
-		var netmaskString = String(netmaskVal);
+		// Make sure we get a string to parse, even if we were passed an object
+		var netmaskString;
+		if(isBin32Compatible(netmaskVal)){
+			netmaskString = netmaskVal.asBinaryString();
+		}else{
+			netmaskString = String(netmaskVal);
+		}
+		
+		// interpret the string
 		if(netmaskString.match(/^\d{1,2}$/) && parseInt(netmaskVal) <= 32){
-			return this.fromNumBits(netmaskVal);
-		}else if(isDottedQuad(netmaskVal)){
-			return this.fromDottedQuad(netmaskVal);
-		}else if(is32BitBinary(netmaskVal)){
-			return this.fromBinaryString(netmaskVal);
-		}else if(is32BitHex(netmaskVal)){
-			return this.fromHexString(netmaskVal);
+			return this.fromNumBits(netmaskString);
+		}else if(isDottedQuad(netmaskString)){
+			return this.fromDottedQuad(netmaskString);
+		}else if(is32BitBinary(netmaskString)){
+			return this.fromBinaryString(netmaskString);
+		}else if(is32BitHex(netmaskString)){
+			return this.fromHexString(netmaskString);
 		}
 		
 		// if we get here we were not able to parse the value, so throw an error
@@ -282,33 +267,20 @@
 	Subnet = function(){
 		this._netAddress = new IP();
 		this._netMask = new Netmask();
-	};
-	
-	// -- Function --
-	// Purpose    : PRIVATE setter function
-	// Returns    : reference to the object - to facilitate function chaninging
-	// Arguments  : 1. an IP object
-	//              2. a Netmask object
-	// Throws     : Throws an error on invalid args
-	// Notes      : This function does not blindly store the IP, instead it
-	//              converts it to a network address based on the netmask.
-	// See Also   :
-	Subnet.prototype._set = function(ip, netmask){
-		// validate args
-		if(!(ip instanceof IP && netmask instanceof Netmask)){
-			throw "invalid args";
+		
+		// if arguments were passed, try init the object with them
+		if(arguments.length >= 1){
+			if(arguments.length == 1){
+				this.parse(arguments[0]);
+			}else{
+				this.parse(arguments[0], arguments[1]);
+			}
 		}
-		
-		// store the netmask
-		this._netMask = netmask;
-		
-		//convert the IP to a netaddress and store
-		this._netAddress = new IP().fromBinaryString(ip.bitwiseAnd(this._netMask));
 	};
 	
 	// -- Function --
-	// Purpose    : render the subnet as a string
-	// Returns    : a string in CIDR format
+	// Purpose    : render the subnet in CIDR format
+	// Returns    : a string
 	// Arguments  : NONE
 	// Throws     : NOTHING
 	// Notes      :
@@ -326,7 +298,7 @@
 	//              1. an IP address as a string
 	//              2. a netmask as a string
 	//              -OR-
-	//              1. a bartificer.Subnet object
+	//              1. a Subnet object
 	// Throws     : NOTHING
 	// Notes      : returns false on invalid args
 	// See Also   :
@@ -341,22 +313,19 @@
 		if(arguments[0] instanceof Subnet){
 			// we have been passed a Subnet object, so just save it
 			subnet = arguments[0];
-		}else if(typeof arguments[0] == 'string'){
+		}else{
 			// we are working with strings
-
-			// see if we are the one argument or two argument form
-			if(arguments.length > 1){
-				// we are of the two-argument form
+			if(arguments.length == 1){
 				try{
-					subnet = new Subnet().parse(arguments[0], arguments[1]);
+					subnet = new Subnet(arguments[0]);
 				}catch(err){
 					return false;
 				}
 			}else{
-				// we are of the one-argument form
 				try{
-					subnet = new Subnet().parse(arguments[0]);
+					subnet = new Subnet(arguments[0], arguments[1]);
 				}catch(err){
+					console.log(err);
 					return false;
 				}
 			}
@@ -367,99 +336,53 @@
 			return true;
 		}
 		
-		// if we got here there was no valid args, so return false
+		// if we got here there were no valid args, so return false
 		return false;
 	};
 	
 	// -- Function --
-	// Purpose    : set stored subnet based on string input
-	// Returns    : a reference to the object - to facilitate function chaining
-	// Arguments  : 1. a string containing a valid IP seprated from a valid
-	//                 netmask by a /
-	//              -OR- 
-	//              1. a string containing a valid IP
-	//              2. a string containing a valid netmask
-	// Throws     : Throws error on invalid args
-	// Notes      :
-	// See Also   :
-	Subnet.prototype.parse = function(){
-		// get the passed IP and subnet
-		var ipString = '';
-		var netmaskString = '';
-		if(arguments.length == 2){
-			ipString = String(arguments[0]);
-			netmaskString = String(arguments[1]);
-		}else if(arguments.length == 1){
-			var combinedString = String(arguments[0]);
-			var subnetParts = combinedString.split(/[/]/);
-			if(subnetParts.length == 2){
-				ipString = subnetParts[0];
-				netmaskString = subnetParts[1];
-			}else{
-				throw "invalid arguments - failed to split IP and netmask declarations";
-			}
-		}else{
-			throw "invalid number of arguments - must be 1 or 2";
-		}
-		
-		// try parse the IP
-		var ip;
-		try{
-			ip = new IP().fromDottedQuad(ipString);
-		}catch(err){
-			throw "failed to parse IP address (" + err + ")";
-		}
-		
-		// try parse the netmask
-		var netmask;
-		if(netmaskString.match(/^\d{1,2}$/) && parseInt(netmaskString) <= 32){
-			netmask = new Netmask().fromNumBits(netmaskString);
-		}else if(isDottedQuad(netmaskString)){
-			netmask = new Netmask().fromDottedQuad(netmaskString); // will throw an error if not a valid netmask
-		}else if(is32BitHex(netmaskString)){
-			netmask = new Netmask().fromHexString(netmaskString); // will throw an error if not a valid netmask
-		}else{
-			throw "failed to parse netmask (" + netmaskString + ")";
-		}
-		
-		// go ahead and set the value of this object
-		this._set(ip, netmask);
-		
-		// return a reference to self
-		return this;
+	// Purpose    : Clone a Subnet object
+	// Returns    : a new Subnet object representing the same value as this one
+	// Arguments  : NONE
+	// Throws     : NOTHING
+	// Notes      : 
+	// See Also   : 
+	Subnet.prototype.clone = function(){
+		return new Subnet(this.toString());
 	};
 	
 	// -- Function --
-	// Purpose    : get the network address (as a dotted quad)
+	// Purpose    : get the network address
+	// Returns    : an IP object
+	// Arguments  : NONE
+	// Throws     : NOTHING
+	// Notes      : This function returns a clone, not a reference to the
+	//              actual value stored in the object
+	// See Also   :
+	Subnet.prototype.address = function(){
+		return this._netAddress.clone();
+	};
+	
+	// -- Function --
+	// Purpose    : get the net address as a dotted quad
 	// Returns    : a string
 	// Arguments  : NONE
 	// Throws     : NOTHING
 	// Notes      :
 	// See Also   :
-	Subnet.prototype.address = function(){
+	Subnet.prototype.addressAsString = function(){
 		return this._netAddress.asDottedQuad();
 	};
 	
 	// -- Function --
-	// Purpose    : get the network address as a binary string
-	// Returns    : a string
-	// Arguments  : NONE
-	// Throws     : NOTHING
-	// Notes      :
-	// See Also   :
-	Subnet.prototype.addressAsBinaryString = function(){
-		return this._netAddress.asBinaryString();
-	};
-	
-	// -- Function --
-	// Purpose    : get the netmask as a bit number
-	// Returns    : an integer between 0 and 32 inclusive
+	// Purpose    : get the netmask
+	// Returns    : a Netmask object
 	// Arguments  : NONE
 	// Throws     : NOTHING
 	// Notes      :
 	// See Also   :
 	Subnet.prototype.mask = function(){
-		return this._netMask.asNumBits();
+		return this._netMask.clone();
 	};
 	
 	// -- Function --
@@ -469,30 +392,206 @@
 	// Throws     : NOTHING
 	// Notes      :
 	// See Also   :
-	Subnet.prototype.maskAsDottedQuad = function(){
+	Subnet.prototype.maskAsString = function(){
 		return this._netMask.asDottedQuad();
 	};
 	
 	// -- Function --
-	// Purpose    : get the netmask as a hex string
-	// Returns    : a string
+	// Purpose    : get the netmask as a number of bits
+	// Returns    : a number
 	// Arguments  : NONE
 	// Throws     : NOTHING
 	// Notes      :
 	// See Also   :
-	Subnet.prototype.maskAsHexString = function(){
-		return this._netMask.asHexString();
+	Subnet.prototype.maskAsNumBits = function(){
+		return this._netMask.asNumBits();
 	};
 	
 	// -- Function --
-	// Purpose    : get the netmask as a binary string
+	// Purpose    : set stored subnet based on the arguments
+	// Returns    : a reference to the object - to facilitate function chaining
+	// Arguments  : 1. a string containing a valid IP seprated from a valid
+	//                 netmask by a /
+	//              -OR- 
+	//              1. a string or object representing an IP address
+	//              2. a string or object representing a netmask
+	// Throws     : Throws error on invalid args
+	// Notes      :
+	// See Also   :
+	Subnet.prototype.parse = function(){
+		// figure out if we were called in 1 argument or 2 argument form and
+		// interpret the args to create a IP and subnet objects
+		var ipVal;
+		var maskVal;
+		if(arguments.length == 1){
+			// we are the one argument form, so treat it like a string
+			var subnetString = String(arguments[0]);
+			var subnetParts = subnetString.split(/[/]/);
+			if(subnetParts.length != 2){
+				throw "parse error - failed to interpret the argument as a subnet: " + subnetString;
+			}
+			ipVal = subnetParts[0];
+			maskVal = subnetParts[1];
+		}else if(arguments.length > 1){
+			ipVal = arguments[0];
+			maskVal = arguments[1];
+		}else{
+			throw "invalid arguments - must provide at least one argument";
+		}
+		
+		// try generate IP and Subnet objects based on the passed values
+		var ip = new IP(ipVal); // can throw error
+		var mask = new Netmask(maskVal); // can throw error
+		
+		
+		// convert the passed IP to a network address
+		var net = new IP(ip.bitwiseAnd(mask));
+		
+		// store the values
+		this._netAddress = net;
+		this._netMask = mask;
+		
+		// return a reference to self
+		return this;
+	};
+	
+	// -- Function --
+	// Purpose    : calculate and return the broadcast address for this subnet
+	// Returns    : an IP object
+	// Arguments  : NONE
+	// Throws     : NOTHING
+	// Notes      : 
+	// See Also   :
+	Subnet.prototype.broadcast = function(){
+		// start by inverting the netmask
+		var inverseNetMask = this._netMask.bitwiseInvert();
+		
+		// or the inverse netmask with the net address to create the broadcast
+		return new IP(this._netAddress.bitwiseOr(inverseNetMask));
+	};
+	
+	// -- Function --
+	// Purpose    : calculate and return the broadcast address for this subnet
+	//              as a dotted quad
 	// Returns    : a string
 	// Arguments  : NONE
 	// Throws     : NOTHING
-	// Notes      :
+	// Notes      : 
 	// See Also   :
-	Subnet.prototype.maskAsBinaryString = function(){
-		return this._netMask.asBinaryString();
+	Subnet.prototype.broadcastAsString = function(){
+		return this.broadcast().toString();
+	};
+	
+	// -- Function --
+	// Purpose    : check if this subnet contains a given IP address
+	// Returns    : true or false
+	// Arguments  : 1. an IP address to test as a string or an IP Object
+	// Throws     : NOTHING
+	// Notes      : Returns false on invalid args. The net and broadcast
+	//              addresses are considered to be containined within a subnet.
+	// See Also   :
+	Subnet.prototype.containsIP = function(ipVal){
+		// make sure we got an argument - if not, return false
+		if(arguments.length < 1){
+			return false;
+		}
+		
+		// interpret the test value and create an IP object from it
+		var testIp;
+		try{
+			testIp = new IP(ipVal);
+		}catch(err){
+			// couldn't interpret the input, so return false
+			return false;
+		}
+		
+		// do the math
+		if(this._netAddress.asBinaryString() == testIp.bitwiseAnd(this._netMask)){
+			// the net addresses match, so return true
+			return true;
+		}
+		
+		// default to false
+		return false;
+	};
+	
+	// -- Function --
+	// Purpose    : check if this subnet entirely contains a given Subnet within
+	//              it
+	// Returns    : true or false
+	// Arguments  : 1. A Subnet object or a string representation of a subnet
+	//              -- OR --
+	//              1. An IP object, or a string representing an IP address
+	//              2. A Netmask object, or a string representing a netmask
+	// Notes      : Returns false on invalid args, and if both subnets are the
+	//              same true is still returned.
+	// See Also   :
+	Subnet.prototype.containsSubnet = function(){
+		// make sure we got an argument - if not, return false
+		if(arguments.length < 1){
+			return false;
+		}
+		
+		// interpret the test values and create a Subnet object from them
+		var subnet;
+		if(arguments.length == 1){
+			try{
+				subnet = new Subnet(arguments[0]);
+			}catch(err){
+				return false;
+			}
+		}else{
+			try{
+				subnet = new Subnet(arguments[0], arguments[1]);
+			}catch(err){
+				return false;
+			}
+		}
+		
+		// if both the net address and broadcast address are contained in this
+		// subnet, then the whole subnet is contained
+		if(this.containsIP(subnet.address()) && this.containsIP(subnet.broadcast())){
+			return true;
+		}
+		
+		// default to false
+		return false;
+	};
+	
+	// -- Function --
+	// Purpose    : check if this subnet contains a given IP address or Subnet
+	// Returns    : true or false
+	// Arguments  : 1. a representation of an IP address
+	//              -- OR --
+	//              1. a representation of a subnet
+	//              -- OR --
+	//              1. a representation of an IP address
+	//              2. a representation of a netmask
+	// Throws     : NOTHING
+	// Notes      : Returns false on invalid args. An IP test is assumed unless
+	//              there is more than one argument, the single argument is a
+	//              Subnet object, or the single argument is a string containing
+	//              a /
+	// See Also   :
+	Subnet.prototype.contains = function(){
+		// make sure there is atleast one argument
+		if(arguments.length < 1){
+			return false;
+		}
+		
+		// check for a subnet
+		if(arguments[0] instanceof Subnet){
+			return this.containsSubnet(arguments[0]);
+		}
+		if(arguments.length > 1){
+			return this.containsSubnet(arguments[0], arguments[1]);
+		}
+		if(typeof arguments[0] == 'string' && arguments[0].match(/[/]/)){
+			return this.containsSubnet(arguments[0]);
+		}
+		
+		// if we got here, assume an IP
+		return this.containsIP(arguments[0]);
 	};
 	
 	//
@@ -772,6 +871,17 @@
 	}
 	
 	// -- Function --
+	// Purpose    : Render the 32bit address as a dotted quad
+	// Returns    : a String
+	// Arguments  : NONE
+	// Throws     : NOTHING
+	// Notes      :
+	// See Also   :
+	Bin32.prototype.toString = function(){
+		return this.asDottedQuad();
+	};
+	
+	// -- Function --
 	// Purpose    : Test if a passed value represents the 32bit number stored in
 	//              this object
 	// Returns    : true or false
@@ -967,16 +1077,49 @@
 	// See Also   :
 	Bin32.prototype.parse = function(binVal){
 		// Figure out what we have been passed
+		if(isBin32Compatible(binVal)){
+			return this.fromBinaryString(binVal.asBinaryString());
+		}
 		if(isDottedQuad(binVal)){
 			return this.fromDottedQuad(binVal);
-		}else if(is32BitBinary(binVal)){
+		}
+		if(is32BitBinary(binVal)){
 			return this.fromBinaryString(binVal);
-		}else if(is32BitHex(binVal)){
+		}
+		if(is32BitHex(binVal)){
 			return this.fromHexString(binVal);
 		}
 		
 		// if we get here we were not able to parse the value, so throw an error
 		throw "parse error - failed to parse the given value as representing a 32bit binary number: " + binVal;
+	};
+	
+	// -- Function --
+	// Purpose    : perform a bitwise OR between this object and another
+	// Returns    : a binary string 32 bits long
+	// Arguments  : NONE
+	// Throws     : Throws an error on invalid args
+	// Notes      : 
+	// See Also   :
+	Bin32.prototype.bitwiseInvert = function(){
+		// do the math
+		var localBinString = this.asBinaryString();
+		var ans = '';
+		for(var i = 0; i < localBinString.length; i++){
+			if(localBinString.charAt(i) == '1'){
+				ans += '0';
+			}else{
+				ans += '1';
+			}
+		}
+		
+		// sanity check the result
+		if(!ans.match(/^[01]{32}$/)){
+			throw "calculation error - unexpected result - expected 32bit binary string but got: " + ans;
+		}
+		
+		//return the string
+		return ans;
 	};
 	
 	// -- Function --
@@ -1022,6 +1165,64 @@
 		var ans = '';
 		for(var i = 0; i < localBinString.length; i++){
 			if(localBinString.charAt(i) == '1' && inputBinString.charAt(i) == '1'){
+				ans += '1';
+			}else{
+				ans += '0';
+			}
+		}
+		
+		// sanity check the result
+		if(!ans.match(/^[01]{32}$/)){
+			throw "calculation error - unexpected result - expected 32bit binary string but got: " + ans;
+		}
+		
+		//return the string
+		return ans;
+	};
+	
+	// -- Function --
+	// Purpose    : perform a bitwise OR between this object and another
+	// Returns    : a binary string 32 bits long
+	// Arguments  : 1. a string representing a 32bit binary number in some way
+	//              --OR--
+	//              1. a Bin32 compatible object
+	// Throws     : Throws an error on invalid args
+	// Notes      : 
+	// See Also   :
+	Bin32.prototype.bitwiseOr = function(inputVal){
+		var inputInstance;
+		
+		// validate args
+		if(typeof inputVal == 'string'){
+			// we are a string, so try create a Bin32 object from the string
+			if(is32BitBinary(inputVal)){
+				inputInstance = new Bin32().fromBinaryString(inputVal);
+			}else if(is32BitHex(inputVal)){
+				inputInstance = new Bin32().fromHexString(inputVal);
+			}else if(isDottedQuad(inputVal)){
+				inputInstance = new Bin32().fromDottedQuad(inputVal);
+			}else{
+				throw "parse error - failed to interpret passed string as a 32bit number: " + inputVal;
+			}
+		}else{
+			// not a string, so make sure the passed value is a compatible object
+			if(!(isBin32Compatible(inputVal) && is32BitBinary(inputVal.asBinaryString()))){
+				throw "invalid arguments - the object passed does not implement a function .asBinaryString()";
+			}
+			inputInstance = inputVal;
+		}
+		
+		// calculate and sanity check the input binary string
+		var inputBinString = String(inputInstance.asBinaryString());
+		if(!is32BitBinary(inputBinString)){
+			throw "parse error - failed to convert passed value to valid 32bit binary string";
+		}
+		
+		// do the math
+		var localBinString = this.asBinaryString();
+		var ans = '';
+		for(var i = 0; i < localBinString.length; i++){
+			if(localBinString.charAt(i) == '1' || inputBinString.charAt(i) == '1'){
 				ans += '1';
 			}else{
 				ans += '0';
