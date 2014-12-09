@@ -619,6 +619,27 @@
 		return this.containsIP(arguments[0]);
 	};
 	
+	// -- Function --
+	// Purpose    : return the number of hosts the subnet can contain
+	// Returns    : a whole number
+	// Arguments  : NONE
+	// Throws     : NOTHING
+	// Notes      : For the special case of a netmask of /32, 1 is returned.
+	// See Also   :
+	Subnet.prototype.numHosts = function(){
+		// check for the special case of the single-host subnet
+		if(this.maskAsNumBits() == 32){
+			return 1;
+		}
+		
+		// do the math
+		var numHostBits = 32 - this.maskAsNumBits();
+		var numHosts = Math.pow(2, numHostBits) - 2;
+		
+		// return
+		return numHosts;
+	};
+	
 	//
 	// === PRIVATE Helper Variables ============================================
 	//

@@ -7,7 +7,7 @@ addresses, IP Netmasks, and IP Subnets.
 Synopsys
 --------
 
-	// based on an IP and a netmask, get the network's net address and netmask
+	// based on an IP and a netmask, get the network's net address and broadcast address
 	var net1 = new new bartificer.ip.Subnet('192.168.0.10', '0xffffff00');
 	window.alert('The CIDR representation of the subnet is: ' + net1.toString());
 	window.alert('The network address is: ' + net1.addressAsString());
@@ -588,3 +588,13 @@ This fucntion is an intelligent synonym for both `.containsIP()` and
 the first argument is a string contianing the character `/`, or there is more
 than one argument, the argument(s) is/are passed to `.containsSubnet()` for
 processing, otherwise the argument is passed to `.containsIP()`.
+
+### .numHosts() ###
+
+	var numHosts = net1.numHosts();
+	
+This function returns the number of IP addresses contained within the subnet
+that can be used to address hosts. In the general case, this is the number of
+possible IPs within the subnet minus the network address and the broadcast
+address. The special case is where the netmask is 255.255.255.255, this is used
+to address a single host in CIDR format, so this function returns 1.
