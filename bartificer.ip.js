@@ -1292,5 +1292,8 @@
 	bartificer.ip.IP = IP;
 	bartificer.ip.Netmask = Netmask;
 	bartificer.ip.Subnet = Subnet;
+	bartificer.ip.isDottedQuad = isDottedQuad;
+	bartificer.ip.is32BitHexString = is32BitHex;
+	bartificer.ip.is32BitBinaryString = is32BitBinary;
 	
 }(window.bartificer = window.bartificer || {}));

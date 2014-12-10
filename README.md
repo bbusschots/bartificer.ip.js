@@ -598,3 +598,32 @@ that can be used to address hosts. In the general case, this is the number of
 possible IPs within the subnet minus the network address and the broadcast
 address. The special case is where the netmask is 255.255.255.255, this is used
 to address a single host in CIDR format, so this function returns 1.
+
+Utility Functions
+-----------------
+
+### bartificer.ip.isDottedQuad() ###
+
+	bartificer.ip.isDottedQuad('192.168.0.1'); // true
+	bartificer.ip.isDottedQuad('192.168.00.001'); // true
+	
+This function returns `true` if passed a string representing a valid dotted 
+quad, otherwise it returns `false`. Dotted quads are considerd valid with or
+without the addition of leading `0`s to pad each part of the quad to three
+characters.
+
+### bartificer.ip.is32BitHexString() ###
+
+	bartificer.ip.is32BitHexString('0xffffff00'); // true
+	bartificer.ip.is32BitHexString('ffffff00'); // true
+	
+This function returns `true` if passed a string representing a valid 32bit
+number in hexidecimal, otherwise it returns `false`. The `0x` prefix is
+optional.
+
+### bartificer.ip.is32BitBinaryString ###
+
+	bartificer.ip.is32BitBinaryString('11000000101010000000000000000001'); // true
+	
+This function returns `true` if passed a string consisting of 32 `1`s or `0`s,
+otherwise it returns `false`.
