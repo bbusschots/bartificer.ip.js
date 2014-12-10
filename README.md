@@ -193,6 +193,20 @@ and the passed value, which can be another IP object, a Netmask object, or a
 string representing a 32bit binary number as a binary string, hex string, or
 dotted quad. The value returned is a 32 character long string of `1`s and `0`s.
 
+### .increment() ###
+
+	var ip2 = new bartificer.ip.IP(ip1.increment());
+	
+This function returns a value one greater than the 32bit value stored in the
+object as a binary string. If invoked on `255.255.255.255` an error is thrown.
+
+### .decrement() ###
+
+	var ip2 = new bartificer.ip.IP(ip1.decrement());
+	
+This function returns a value one less than the 32bit value stored in the
+object as a binary string. If invoked on `0.0.0.0` an error is thrown.
+
 bartificer.ip.Netmask Class
 ---------------------------
 
@@ -390,6 +404,20 @@ This function performs a bitwise binary OR operation between the calling object
 and the passed value, which can be another Netmask object, an IP object, or a
 string representing a 32bit binary number as a binary string, hex string, or
 dotted quad. The value returned is a 32 character long string of `1`s and `0`s.
+
+### .increment() ###
+
+	var ip2 = new bartificer.ip.IP(ip1.increment());
+	
+This function returns a value one greater than the 32bit value stored in the
+object as a binary string. If invoked on `255.255.255.255` an error is thrown.
+
+### .decrement() ###
+
+	var ip2 = new bartificer.ip.IP(ip1.decrement());
+	
+This function returns a value one less than the 32bit value stored in the
+object as a binary string. If invoked on `0.0.0.0` an error is thrown.
 
 bartificer.ip.Subnet Class
 --------------------------

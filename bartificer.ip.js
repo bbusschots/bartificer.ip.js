@@ -1284,6 +1284,80 @@
 		return ans;
 	};
 	
+	// -- Function --
+	// Purpose    : Increment the value of a 32bit number by 1
+	// Returns    : a binary string 32 bits long
+	// Arguments  : NONE
+	// Throws     : Throws an error if we overflow 32bits
+	// Notes      : 
+	// See Also   :
+	Bin32.prototype.increment = function(){
+		// start with the current value of the object reversed
+		var revBinString = this.asBinaryString().split('').reverse().join('');
+		
+		// apply the algorythm
+		var ansRev = '';
+		var i = 0;
+		var zeroFlipped = false
+		for(var i = 0; i < revBinString.length; i++){
+			if(!zeroFlipped){
+				if(revBinString.charAt(i) == '0'){
+					ansRev += '1';
+					zeroFlipped = true;
+				}else{
+					ansRev += '0';
+				}
+			}else{
+				ansRev += revBinString.charAt(i);
+			}
+		}
+		
+		// make sure we haven't overflowed
+		if(!zeroFlipped){
+			throw "integer overflow";
+		}
+		
+		//un-reverse and return the answer
+		return ansRev.split('').reverse().join('');
+	};
+	
+	// -- Function --
+	// Purpose    : Decrement the value of a 32bit number by 1
+	// Returns    : a binary string 32 bits long
+	// Arguments  : NONE
+	// Throws     : Throws an error if we overflow 32bits
+	// Notes      : 
+	// See Also   :
+	Bin32.prototype.decrement = function(){
+		// start with the current value of the object reversed
+		var revBinString = this.asBinaryString().split('').reverse().join('');
+		
+		// apply the algorythm
+		var ansRev = '';
+		var i = 0;
+		var oneFlipped = false
+		for(var i = 0; i < revBinString.length; i++){
+			if(!oneFlipped){
+				if(revBinString.charAt(i) == '1'){
+					ansRev += '0';
+					oneFlipped = true;
+				}else{
+					ansRev += '1';
+				}
+			}else{
+				ansRev += revBinString.charAt(i);
+			}
+		}
+		
+		// make sure we haven't overflowed
+		if(!oneFlipped){
+			throw "integer overflow";
+		}
+		
+		//un-reverse and return the answer
+		return ansRev.split('').reverse().join('');
+	};
+	
 	//
 	// === Exports =============================================================
 	//
