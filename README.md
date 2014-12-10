@@ -558,6 +558,9 @@ throw an error.
 
 This function returns the broadcast address of a subnet as an IP object.
 
+An error is thrown if this function is called on a subnet with a `/32` mask
+because single host subnets don't have broadcast addresses.
+
 ### .broadcastAsString() ###
 
 	var ipString = net1.broadcastAsString();
@@ -626,6 +629,24 @@ that can be used to address hosts. In the general case, this is the number of
 possible IPs within the subnet minus the network address and the broadcast
 address. The special case is where the netmask is 255.255.255.255, this is used
 to address a single host in CIDR format, so this function returns 1.
+
+### .firstHost() ###
+
+	var ip1 = net1.firstHost();
+
+This function returns an IP object representing the first usable IP address in
+a subnet. For the special-case of single host subnets (`/32` netmask), the
+network address is returned. For the special case of a subnet with a `/31`
+subnet mask an error is thrown because there are no host IPs in such a subnet.
+
+### .firstHost() ###
+
+	var ip1 = net1.lastHost();
+
+This function returns an IP object representing the last usable IP address in
+a subnet. For the special-case of single host subnets (`/32` netmask), the
+network address is returned. For the special case of a subnet with a `/31`
+subnet mask an error is thrown because there are no host IPs in such a subnet.
 
 Utility Functions
 -----------------

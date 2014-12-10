@@ -484,10 +484,15 @@
 	// Purpose    : calculate and return the broadcast address for this subnet
 	// Returns    : an IP object
 	// Arguments  : NONE
-	// Throws     : NOTHING
+	// Throws     : Throws error on /32 mask (single-host subnet has no broadcast)
 	// Notes      : 
 	// See Also   :
 	Subnet.prototype.broadcast = function(){
+		// make sure we are not /32
+		if(this.mask().asNumBits() == 32){
+			throw "no broadcast address on /32 subnet";
+		}
+		
 		// start by inverting the netmask
 		var inverseNetMask = this._netMask.bitwiseInvert();
 		
@@ -638,6 +643,56 @@
 		
 		// return
 		return numHosts;
+	};
+	
+	// -- Function --
+	// Purpose    : Return an IP object representing the first usable IP in the
+	//              subnet
+	// Returns    : An IP object
+	// Arguments  : NONE
+	// Throws     : Throws an error if called on a /31 subnet (has no hosts)
+	// Notes      : 
+	// See Also   :
+	Subnet.prototype.firstHost = function(){
+		var numBits = this.mask().asNumBits();
+		
+		// deal with special cases
+		if(numBits == 32){
+			// special case of the single-host subnet - so return cloned netadd
+			return this.address().clone();
+		}
+		if(numBits == 31){
+			// special case with no usable addresses - throw error
+			throw "no hosts in /31 subnet";
+		}
+		
+		// deal with generic case
+		return new IP(this.address().increment());
+	};
+	
+	// -- Function --
+	// Purpose    : Return an IP object representing the last usable IP in the
+	//              subnet
+	// Returns    : An IP object
+	// Arguments  : NONE
+	// Throws     : Throws an error if called on a /31 subnet (has no hosts)
+	// Notes      : 
+	// See Also   :
+	Subnet.prototype.lastHost = function(){
+		var numBits = this.mask().asNumBits();
+		
+		// deal with special cases
+		if(numBits == 32){
+			// special case of the single-host subnet - so return cloned netadd
+			return this.address().clone();
+		}
+		if(numBits == 31){
+			// special case with no usable addresses - throw error
+			throw "no hosts in /31 subnet";
+		}
+		
+		// deal with generic case
+		return new IP(this.broadcast().decrement());
 	};
 	
 	//
