@@ -433,6 +433,40 @@
 	};
 	
 	// -- Function --
+	// Purpose    : render the subnet in * Format if possible
+	// Returns    : a string
+	// Arguments  : NONE
+	// Throws     : Throws an error if called on a subnet with a mask of
+	//              anything other than /0, /8, /16, /24 or /32
+	// Notes      :
+	// See Also   :
+	Subnet.prototype.asStarNotation = function(){
+		// throw an error if called on an invalid mask
+		var numBits = this.maskAsNumBits();
+		
+		// do the appropriate replacement on the network address and return
+		if(numBits == 0){
+			return '*.*.*.*';
+		}
+		if(numBits == 8){
+			return this.address().asDottedQuad().replace(/^(\d{1,3})[.]\d{1,3}[.]\d{1,3}[.]\d{1,3}$/, '$1.*.*.*');
+		}
+		if(numBits == 16){
+			return this.address().asDottedQuad().replace(/^(\d{1,3}[.]\d{1,3})[.]\d{1,3}[.]\d{1,3}$/, '$1.*.*');
+		}
+		if(numBits == 24){
+			return this.address().asDottedQuad().replace(/^(\d{1,3}[.]\d{1,3}[.]\d{1,3})[.]\d{1,3}$/, '$1.*');
+		}
+		if(numBits == 32){
+			return this.address().asDottedQuad();
+		}
+		
+		// if we got here, the mask is not valid, so throw an error
+		throw "invalid netmask - this function only works on subnets where the number of mask bits is divisible by 8"
+	};
+	
+	
+	// -- Function --
 	// Purpose    : set stored subnet based on the arguments
 	// Returns    : a reference to the object - to facilitate function chaining
 	// Arguments  : 1. a string containing a valid IP seprated from a valid

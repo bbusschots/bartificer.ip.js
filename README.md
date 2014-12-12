@@ -568,6 +568,16 @@ because single host subnets don't have broadcast addresses.
 This function returns the broadcast address of a subnet as a string representing
 a dotted quad.
 
+### .asStarNotation() ###
+
+	var subnetString = net1.asStarNotation();
+	
+This function returns the subnet in 'star notation', if possible. E.g. 
+`192.168.0.1/24` would be rendered as `192.168.0.*`. This kind of notation is
+only possible on subnets where the number of bits set in the netmask is
+divisible by 8. Note that at the two edges, a mask with zero bits set will
+return `*.*.*.*`, and a mask with 32 bits set will return the network address.
+
 ### .containsIP() ###
 
 	var net1 = new bartificer.ip.Subnet('192.168.0.0/24');
