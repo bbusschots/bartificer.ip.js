@@ -2,7 +2,7 @@ bartificer.ip.js
 ================
 
 A collection of Javascript 'classes' for representing and processing IP
-addresses, IP Netmasks, and IP Subnets.
+addresses, Netmasks, and IP Subnets. This is the library that powers the free online calculator at [SubnetCalc.it](http://subnetcalc.it/).
 
 Synopsys
 --------
